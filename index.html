@@ -129,7 +129,7 @@ D.pathsBehnoBusy = {"2":{"Sahajanand Hall|Water Station (E)":[1225,486,1225,472,
 // Kiosks keep the Bhaiyo flow, as before.
 const EAST_SIDE = new Set(['stair_br','stair_fr','elev_fr','stair_tr','elev_tr']);
 let SIDE = 'E';
-const sideAvoid = ()=> SIDE==='I' ? EAST_SIDE : WEST_SIDE;
+const sideAvoid = ()=> PHONE_MODE ? new Set() : WEST_SIDE;
 const SIDE_AXIS = {B:938,'1':935,'2':930,M:895};
 const CENTRE_ROOMS = new Set(['Main Foyer','Main Entrance','NIJ Mandir','Sihasan','Abhishek','Yogi Hall']);
 const ROOM_SIDE = {};
@@ -172,7 +172,7 @@ const HALL_BUSY=[
 let TO_MEZZ=false;   // trips to/from the Mezzanine always use the gym + top-corridor flow on the 2nd floor
 function hallBusy(){ const n=etNow(); const mm=t=>{const [h,m]=t.split(':');return (+h)*60+(+m);};
   return HALL_BUSY.some(([d,a,b])=>d===n.dy&&mm(a)<=n.m&&n.m<mm(b)); }
-const pathOf=(floor,a,b)=>{if(a===b&&a[0]==='@'){const q=D.portals[floor]&&D.portals[floor][a.slice(1)];return q?[[q.x,q.y],[q.x,q.y]]:null;}if(SIDE==='I'){const B=(TO_MEZZ||hallBusy())?D.pathsBehnoBusy:D.pathsBehno;const bp=B&&B[floor]&&B[floor][a+'|'+b];if(bp)return pts(bp);}const P=((TO_MEZZ||hallBusy())&&D.pathsHallBusy&&D.pathsHallBusy[floor])||D.paths[floor];const p=P[a+'|'+b];return p?pts(p):null;};
+const pathOf=(floor,a,b)=>{if(a===b&&a[0]==='@'){const q=D.portals[floor]&&D.portals[floor][a.slice(1)];return q?[[q.x,q.y],[q.x,q.y]]:null;}if(false){const B=(TO_MEZZ||hallBusy())?D.pathsBehnoBusy:D.pathsBehno;const bp=B&&B[floor]&&B[floor][a+'|'+b];if(bp)return pts(bp);}const P=((TO_MEZZ||hallBusy())&&D.pathsHallBusy&&D.pathsHallBusy[floor])||D.paths[floor];const p=P[a+'|'+b];return p?pts(p):null;};
 const LEVEL={'B':0,'1':1,M:1.5,'2':2};
 const levels=(a,b)=>Math.abs(LEVEL[a]-LEVEL[b]);
 const STAIRS_PENALTY_PER_LEVEL=220, ELEVATOR_PENALTY=500;
@@ -308,7 +308,7 @@ function destBar(){
   return `<div class="destbar ${err?'':'active'}">
     <div class="destrow"><span class="info">${S.sess!=null?`<div class="l" style="font-size:18px;font-weight:700;color:var(--red);letter-spacing:.04em">${SESS[S.sess].bn?'Breakout '+SESS[S.sess].bn+' · ':''}${esc(SESS[S.sess].g)} · ${esc(SESS[S.sess].t)}</div>`:''}<div class="v">${esc(T.name)}</div></span>
     <button class="chg" data-a="opendest">Change</button></div>
-    ${PHONE_MODE&&!err&&S.route?`<div style="margin-top:10px;font-size:20px;font-weight:600;color:var(--sub)">Following the ${SIDE==='I'?'I-side (Behno)':'E-side (Bhaiyo)'} flow</div>`:''}
+    
     ${err?`<div style="margin-top:12px;font-size:22px;color:var(--red)">${esc(S.route.error)}</div>`:''}
     <div class="opt" data-a="avoid"><span>No stairs (elevator only)</span><span class="sw ${S.avoid?'on':''}"></span></div>
   </div>`;
