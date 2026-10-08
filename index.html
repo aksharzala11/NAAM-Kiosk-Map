@@ -172,7 +172,7 @@ const HALL_BUSY=[
 let TO_MEZZ=false;   // trips to/from the Mezzanine always use the gym + top-corridor flow on the 2nd floor
 function hallBusy(){ const n=etNow(); const mm=t=>{const [h,m]=t.split(':');return (+h)*60+(+m);};
   return HALL_BUSY.some(([d,a,b])=>d===n.dy&&mm(a)<=n.m&&n.m<mm(b)); }
-const pathOf=(floor,a,b)=>{if(a===b&&a[0]==='@'){const q=D.portals[floor]&&D.portals[floor][a.slice(1)];return q?[[q.x,q.y],[q.x,q.y]]:null;}if(false){const B=(TO_MEZZ||hallBusy())?D.pathsBehnoBusy:D.pathsBehno;const bp=B&&B[floor]&&B[floor][a+'|'+b];if(bp)return pts(bp);}const P=((TO_MEZZ||hallBusy())&&D.pathsHallBusy&&D.pathsHallBusy[floor])||D.paths[floor];const p=P[a+'|'+b];return p?pts(p):null;};
+const pathOf=(floor,a,b)=>{if(a===b&&a[0]==='@'){const q=D.portals[floor]&&D.portals[floor][a.slice(1)];return q?[[q.x,q.y],[q.x,q.y]]:null;}if(false){const B=(TO_MEZZ||hallBusy())?D.pathsBehnoBusy:D.pathsBehno;const bp=B&&B[floor]&&B[floor][a+'|'+b];if(bp)return pts(bp);}const BACKSTAGE=(floor==='2'&&(a==='@stair_tr'||b==='@stair_tr'));const P=(!BACKSTAGE&&D.pathsHallBusy&&D.pathsHallBusy[floor])||D.paths[floor];const p=P[a+'|'+b];return p?pts(p):null;};
 const LEVEL={'B':0,'1':1,M:1.5,'2':2};
 const levels=(a,b)=>Math.abs(LEVEL[a]-LEVEL[b]);
 const STAIRS_PENALTY_PER_LEVEL=220, ELEVATOR_PENALTY=500;
@@ -231,6 +231,12 @@ function findRoute_(fromId,toId,avoid){
     const p=pathOf(F.floor,F.name,T.name);
     if(!p) return {error:'No route found between these two places.'};
     return {legs:[{floor:F.floor,path:p,from:F.name,to:T.name}],verts:[]};
+  }
+  if(F.id==='B-large-banquet-hall'&&T.floor==='M'&&!avoid){
+    const a1=[[946,501],[1097,501],[1097,143],[1522,143],[1522,845],[1528,845]];
+    const q2=pathOf('2','@stair_br','@stair_tr'),q3=pathOf('M','@stair_tr',T.name);
+    if(q2&&q3) return {legs:[{floor:'B',path:a1,from:F.name,to:PN.stair_br},{floor:'2',path:q2,from:PN.stair_br,to:PN.stair_tr},{floor:'M',path:q3,from:PN.stair_tr,to:T.name}],
+      verts:[{type:'stairs',dir:'up',from:'B',to:'2'},{type:'stairs',dir:'up',from:'2',to:'M'}]};
   }
   let best=null;
   const consider=(cost,legs,verts)=>{if(!best||cost<best.cost)best={cost,legs,verts};};
@@ -293,7 +299,7 @@ function compute(){ SIDE=routeSide(); S.route = S.to ? findRoute(CONFIG.homePlac
 function legOnFloor(floorId){ if(!S.route||S.route.error) return null; const i=S.route.legs.findIndex(l=>l.floor===floorId); return i<0?null:i; }
 /* ---------------- rendering ---------------- */
 function brand(){return `<div class="brand"><img src="${LOGO}" alt="Sāchu Sāchu Sāchu"></div>`;}
-function howto(){return `<div class="howto"><h2>How to use this map</h2><ol><li>Tap <b>Where do you want to go?</b> above and pick your seva (like KM RA), or tap any room on the map.</li><li>Follow the red line from the green <b>You are here</b> pin to the red pin at your destination.</li><li>If your trip changes floors, the map switches floors for you. Tap a floor button to look around.</li></ol></div>`;}
+function howto(){return `<div class="howto"><h2>How to use this map</h2><ol><li>Tap <b>any room you want to go to</b> on the map, or tap <b>Where do you want to go?</b> above and pick your seva (like KM RA).</li><li>Follow the red line from the green <b>You are here</b> pin to the red pin at your destination.</li><li>If your trip changes floors, the map switches floors for you. Tap a floor button to look around.</li></ol></div>`;}
 function tabsHtml(){
   return `<div class="tabs" style="padding:0 24px">${TAB_ORDER.map(id=>{
     const isHome=id===homeFloor, hasLeg=legOnFloor(id)!==null, isDest=S.to&&placesById[S.to].floor===id;
@@ -302,7 +308,7 @@ function tabsHtml(){
 }
 function destBar(){
   if(!S.to){
-    return `<button class="destbar" data-a="opendest" style="width:100%;text-align:left"><div class="go">Where do you want to go?<small>Find your seva (e.g. KM RA) or any room, restroom, or hall</small></div></button>`;
+    return `<button class="destbar" data-a="opendest" style="width:100%;text-align:left"><div class="go">Where do you want to go?<small>Find your seva (e.g. KM RA)</small></div></button>`;
   }
   const T=placesById[S.to], err = S.route&&S.route.error;
   return `<div class="destbar ${err?'':'active'}">
@@ -367,8 +373,7 @@ function mk(p,txt,col,rd,sw){
 function pickScreen(bodyOnly){
   const q=S.pQ.trim().toLowerCase();
   const head=`<div class="pk-top"><img src="${LOGO}" style="height:70px" alt=""><button class="pk-close" data-a="closedest">Close ✕</button></div>
-  <h1>Where do you<br>want to go?</h1>
-  <div class="pk-mode"><button class="${S.pMode==='sess'?'on':''}" data-a="pmode" data-v="sess">My Seva</button><button class="${S.pMode==='rooms'?'on':''}" data-a="pmode" data-v="rooms">All rooms</button></div>`;
+  <h1>Where do you<br>want to go?</h1>`;
   if(S.pMode==='sess'){
     const n=etNow();
     let all=SESS.map((x,i)=>Object.assign({i},x)).filter(x=>!sessEnded(x,n));
@@ -390,7 +395,7 @@ function pickScreen(bodyOnly){
       rows+=`<button class="sess ${x.p?'':'nomap'} ${live?'live':''} ${x.kind==='prog'?'prog':''}" ${x.p?`data-a="sesspick" data-v="${x.i}"`:''}><div class="st">${tag?`<div class="sesstag">${esc(tag)}</div>`:''}${esc(x.t)}</div><div class="sb"><b>${esc(x.g)}</b><span>${esc(x.r)} · ${esc(floorsById[x.f].name)}</span>${x.d?`<small>${esc(x.d)}</small>`:''}${x.p?'':'<small>Room not on the map yet</small>'}</div></button>`;
     }
     const empty = all.length ? '<div style="font-size:26px;color:var(--sub)">No sevas match that.</div>'
-      : '<div style="font-size:26px;color:var(--sub);line-height:1.4">All scheduled NAAM sessions have finished. Tap <b>All rooms</b> to find any room.</div>';
+      : '<div style="font-size:26px;color:var(--sub);line-height:1.4">All scheduled NAAM sessions have finished.</div>';
     const inp=`<input class="search" id="q" type="search" placeholder="Type your Seva, e.g. KM RA" value="${esc(S.pQ)}" autocomplete="off" inputmode="none" data-a="kbopen">`;
     const aud=PHONE_MODE?`<div class="pk-tabs" style="grid-template-columns:repeat(3,1fr)">${[['all','All'],['bhaiyo','Bhaiyo'],['behno','Behno']].map(([k,l])=>`<button class="pk-tab ${S.pAud===k?'on':''}" data-a="paud" data-v="${k}">${l}</button>`).join('')}</div>`:'';
     const body=`${aud}
